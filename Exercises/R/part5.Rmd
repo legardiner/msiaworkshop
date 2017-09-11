@@ -1,0 +1,151 @@
+---
+title: "R Exercises Part 5: Visualization"
+author: "Lauren Gardiner"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+The original document for the part 5 of the R exercises can be found (here)[https://nuitrcs.github.io/intro_r_workshop/coreexercises/part5_exercises.html]
+
+# Setup
+
+```{r}
+library(tidyverse)
+library(gapminder)
+data("gapminder")
+```
+
+# Exercise: Make a Line Plot
+
+```{r}
+plot(x=gapminder$year[gapminder$country=="Afghanistan"],
+     y=gapminder$pop[gapminder$country=="Afghanistan"],
+     type="l",
+     xlab="Year",
+     ylab="Population",
+     main="Population of Afghanistan by Year")
+```
+```{r}
+gapminder %>%
+  filter(country=="Afghanistan") %>%
+  ggplot(aes(x=year, y=pop)) +
+  geom_point() +
+  ggtitle("Population of Afghanistan by Year") +
+  xlab("Year") +
+  ylab("Population")
+```
+
+# Histogram
+
+## 5 bins
+
+```{r}
+gapminder %>%
+  filter(year==2007) %>%
+  ggplot(aes(lifeExp)) +
+  geom_histogram(bins=5)
+```
+
+## 10 bins
+
+```{r}
+gapminder %>%
+  filter(year==2007) %>%
+  ggplot(aes(lifeExp)) +
+  geom_histogram(bins=10)
+```
+
+## 20 bins
+
+```{r}
+gapminder %>%
+  filter(year==2007) %>%
+  ggplot(aes(lifeExp)) +
+  geom_histogram(bins=20)
+```
+
+## 40 bins
+
+```{r}
+gapminder %>%
+  filter(year==2007) %>%
+  ggplot(aes(lifeExp)) +
+  geom_histogram(bins=40)
+```
+
+# `ggplot`: Change Colors
+
+```{r}
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", 
+               "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+gapminder %>%
+  filter(year==2002) %>%
+  ggplot(aes(x=gdpPercap, y=lifeExp, color=continent)) +
+  geom_point() +
+  scale_x_log10() +
+  scale_colour_manual(values=cbPalette)
+```
+
+# `ggplot`: Multiple lines and facets
+
+```{r}
+ggplot(gapminder, aes(x=year, y=lifeExp, by=country, color=continent)) +
+  geom_line() +
+  xlab("Year") +
+  ylab("Life Expectancy")
+```
+
+## Add points
+
+```{r}
+ggplot(gapminder, aes(x=year, y=lifeExp, by=country, color=continent)) +
+  geom_line() +
+  geom_point() +
+  xlab("Year") +
+  ylab("Life Expectancy")
+```
+
+## Break out by continent
+
+```{r}
+ggplot(gapminder, aes(x=year, y=lifeExp, by=country, color=continent)) +
+  geom_line() +
+  geom_point() +
+  facet_grid(continent~.) +
+  xlab("Year") +
+  ylab("Life Expectancy") +
+  theme(legend.position = "none")
+```
+
+# `ggplot`: Add a Trend Line
+
+## Linear Regression Line for Each Continent
+
+```{r}
+gapminder %>%
+  filter(year==2007) %>%
+  ggplot(aes(y=lifeExp, x=pop, color=continent)) +
+  geom_point() + 
+  xlab("Population") +
+  ylab("Life Expectancy") +
+  scale_x_log10() +
+  geom_smooth(method=lm)
+```
+
+## Overall Trend Line
+
+```{r}
+gapminder %>%
+  filter(year==2007) %>%
+  ggplot(aes(y=lifeExp, x=pop)) +
+  geom_point() + 
+  xlab("Population") +
+  ylab("Life Expectancy") +
+  scale_x_log10() +
+  geom_smooth(method=lm)
+```
