@@ -1,0 +1,115 @@
+---
+title: 'R Exercises Part 2: Data Frames and Other Data Structures'
+author: "Lauren Gardiner"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The original document for the part 2 of the R exercises can be found (here)[https://nuitrcs.github.io/intro_r_workshop/coreexercises/part2_exercises.html]
+
+# Exercise: Make a `data.frame`
+
+```{r}
+mydata <- data.frame(var1=1:10, var2=LETTERS[1:10], var3=c(6, 3, 2, 7, 9, 11, 73, 12, 83, 29))
+mydata
+```
+```{r}
+mydata$month <- month.name[1:10]
+mydata
+```
+
+# Exercise: Explore Differences in Selecting from `data.frame`
+```{r}
+mydata[1]
+mydata[[1]]
+mydata$var2
+mydata["var2"]
+mydata[1, 1]
+mydata[, 1]
+mydata[1,]
+mydata[-1,]
+```
+# Exercise: Working with a `data.frame`
+```{r}
+data(iris)
+dim(iris)
+```
+```{r}
+names(iris)
+```
+```{r}
+head(iris, 10)
+```
+```{r, eval = FALSE}
+View(iris)
+```
+```{r}
+iris[iris$Sepal.Width < 2.5,]
+```
+```{r}
+iris[iris$Sepal.Width < 2.5 & iris$Sepal.Length < 5,]
+```
+```{r}
+iris[which.max(iris$Sepal.Length),]
+```
+```{r}
+names(iris)[names(iris)=="Petal.Width"] <- "petalwidth"
+names(iris)
+```
+
+
+# Exercise: Make a `list`
+```{r}
+mysubsets <- list(shortpetals=iris[iris$Petal.Length < 3,],
+                  shortsepals=iris[iris$Sepal.Length < 5,])
+mysubsets
+```
+```{r}
+table(mysubsets$shortsepals$Species)
+```
+
+# Exercise: Fix subsetting errors
+```{r}
+iris[iris$Species=="setosa",]
+```
+# Exercise: Counting with Conditionals
+```{r}
+data(mtcars)
+sum(mtcars$mpg > 30)
+```
+```{r}
+sum(mtcars$hp < 100)
+```
+
+# Challenge Exercise: Matrix Manipulation
+```{r}
+X <- matrix(rnorm(50), nrow=10)
+y <- 1:5
+t(X %*% y)
+```
+```{r}
+X <- matrix(rnorm(36), nrow=6)
+solve(X)
+```
+```{r}
+diag(solve(X))
+```
+# Challenge Exercise: List Indexing
+```{r}
+nested_list <- list(level1 = list(level2 = list(letters = LETTERS)))
+nested_list$level1$level2$letters
+```
+```{r}
+nested_list[[1]][[1]][[1]]
+```
+# Challenge Exercise: Use `apply`
+```{r}
+apply(mtcars, 2, mean)
+```
