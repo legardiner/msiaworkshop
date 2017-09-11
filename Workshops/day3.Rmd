@@ -1,0 +1,303 @@
+---
+title: "Bootcamp Day 3"
+author: "Lauren Gardiner"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Data Visualization Workshop
+## Gapminder Data
+### Setup
+Load libraries
+```{r}
+library(tidyverse)
+library(gapminder)
+```
+Load data
+```{r}
+data(gapminder)
+schooldata <- read_csv("~/team/bootcamp/R/schooldata.csv")
+```
+### Base R
+Create histogram
+```{r}
+hist(schooldata$grade)
+```
+You can change the bins with the `breaks` paramter
+```{r}
+hist(schooldata$grade, breaks=30)
+```
+You can also set the scales, axis limits, and titles
+```{r}
+hist(schooldata$grade, 
+     breaks=seq(.875, 4.125, .25), 
+     xlim=c(0,4), 
+     main="Grade Distribution",
+     xlab="Grade",
+     ylab="Count")
+```
+Create a scatterplot of life expectancy on the y-axis and GDP per capita on the x-axis
+```{r}
+plot(x=gapminder$gdpPercap[gapminder$year==2002],
+     y=gapminder$lifeExp[gapminder$year==2002],
+     log="x")
+```
+To save a plot, you need to start a device with a file name, recreate the graphics, and then save it. You can set dimensions, which are in inches. To save the graphic, turn off the use the `dev.off()` command
+```{r}
+pdf("plot1.pdf", width=6, height=4)
+plot(x=gapminder$gdpPercap[gapminder$year==2002],
+     y=gapminder$lifeExp[gapminder$year==2002],
+     log="x")
+dev.off()
+```
+### ggplot2
+Let's recreate all of the base R plots in `ggplot`
+
+Create a histogram with `ggplot`
+```{r}
+ggplot(schooldata, aes(grade)) + 
+  geom_histogram(bins=20)
+```
+Instead of setting the number of bins with `bins`, you can set the `binwidth`
+```{r}
+ggplot(schooldata, aes(grade)) + 
+  geom_histogram(binwidth=.25) +
+  xlim(0, NA) +
+  xlab("Grade") +
+  ylab("Count") +
+  ggtitle("Grade Distribution")
+```
+Let's split the data by gender. ggplot's `facet` handles this much better than base R where you have to set the layout and make each individual plot
+```{r}
+ggplot(schooldata, aes(grade)) + 
+  geom_histogram(binwidth=.25) +
+  xlim(0, NA) +
+  xlab("Grade") +
+  ylab("Count") +
+  ggtitle("Grade Distribution") +
+  facet_grid(gender~.)
+```
+Let's filter out the missing data and set the order with `dplyr` before handing it over to `ggplot`
+```{r}
+schooldata %>%
+  filter(!is.na(gender)) %>%
+  mutate(gender = factor(gender, 
+                         levels=c("M", "F"),
+                         labels=c("Male", "Female"))) %>%
+  ggplot(aes(grade)) + 
+  geom_histogram(binwidth=.25) +
+  xlim(0, NA) +
+  xlab("Grade") +
+  ylab("Count") +
+  ggtitle("Grade Distribution") +
+  facet_grid(gender~.)
+```
+Create a scatterplot of life expectancy on the y-axis and GDP per capita on the x-axis and color by the variable `continent`
+```{r}
+gapminder %>%
+  filter(year==2002) %>%
+  ggplot(aes(x=gdpPercap, y=lifeExp, color=continent)) +
+  geom_point() +
+  scale_x_log10()
+```
+Save the plot. `ggsave` will save the last plot that was made. 
+```{r}
+ggsave("p1.pdf", width=6, height=4)
+```
+## Baby Names Data
+### Setup
+```{r}
+library(babynames)
+data(babynames)
+```
+### Plotting with `ggplot`
+Create initial and initial proportions columns
+```{r}
+babynames <- mutate(babynames, initial=substr(name, 1, 1))
+initial_props <- 
+  babynames %>%
+  group_by(year, sex, initial) %>%
+  summarize(count=sum(n), totalprop=sum(prop)) %>%
+  ungroup()
+```
+Plot girls with the initial `A` over time
+```{r}
+initial_props %>%
+  filter(sex=="F" & initial=="A") %>%
+  ggplot(aes(y=totalprop, x=year)) +
+  geom_line()
+```
+Plot boys and girls with the initial `A` over time
+```{r}
+initial_props %>%
+  filter(initial=="A") %>%
+  ggplot(aes(y=totalprop, x=year, color=sex)) +
+  geom_line()
+```
+Change the `linetype` instead of `color`
+```{r}
+initial_props %>%
+  filter(initial=="A") %>%
+  ggplot(aes(y=totalprop, x=year)) +
+  geom_line(aes(linetype=sex), color="red", size=1)
+```
+Create plot of proportion by year for each initial
+```{r}
+initial_props %>%
+  ggplot(aes(y=totalprop, x=year, color=sex)) +
+  geom_line() +
+  facet_wrap(~initial) +
+  scale_color_discrete(labels=c("Female", "Male"), name="Sex") +
+  scale_y_continuous(breaks=c(0, .1, .2)) +
+  theme(axis.text.x = element_text(angle=-90, vjust=0.5),
+        panel.grid.minor = element_blank()) +
+  labs(title="Baby Names First Initial",
+       x="Year",
+       y="Proportion of Babies")
+```
+#### Let's find unisex names with `dplyr`
+```{r}
+topnames <- babynames %>%
+  filter(year>=1950) %>%
+  group_by(name) %>%
+  summarize(total=sum(n)) %>%
+  arrange(desc(total)) %>%
+  slice(1:1000) %>%
+  inner_join(babynames) %>%
+  filter(year >= 1950) %>%
+  mutate(sex=recode(sex, "F"="Female", "M"="Male")) %>%
+  group_by(name, sex, total) %>%
+  summarise(sextotal=sum(n)) %>%
+  spread(key=sex, value=sextotal) %>%
+  mutate(ratio=(Male-Female)/total)
+```
+Create a scatterplot with `topnames` dataframe
+```{r}
+ggplot(topnames, aes(x=Male, y=Female)) +
+  geom_point()
+```
+Find row where there is missing data
+```{r}
+topnames %>%
+  filter(is.na(Male) | is.na(Female))
+```
+Set limits to focus on bottom right part of the plot
+```{r}
+ggplot(topnames, aes(x=Male, y=Female, color=ratio)) +
+  geom_point() +
+  lims(x=c(0, 250000), y=c(0, 250000)) +
+  geom_abline() +
+  scale_color_gradient(low="pink", high="blue", 
+                       name="Sex Dominance", 
+                       breaks=c(.9, 0, -.9), 
+                       labels=c("Male", "Neutral", "Female")) +
+  geom_text(aes(label=ifelse(abs(ratio) < .2, 
+                                 name,
+                                 "")),
+            hjust=-.25, vjust=0.5, color="gray10",
+            fontface="bold", size=3)
+```
+Reconfigure the data to be used with a bar chart. For a bar chart, you need to gather the data and have groups. (This is undoing what we did with `spread` when creating `topnames`)
+```{r}
+topnames2 <- gather(topnames, key="sex", value="sextotal", Male, Female)
+```
+Create a bar chart for the most common unisex names
+```{r}
+topnames2 %>%
+  filter(abs(ratio) < .3 & !is.na(ratio)) %>%
+  ggplot(aes(x=name, y=sextotal, fill=sex)) +
+  geom_bar(stat="identity") +
+  labs(title="Popular Unisex Names", x="", y="Count")
+```
+Show the split instead of count
+```{r}
+topnames2 %>%
+  filter(abs(ratio) < .3 & !is.na(ratio)) %>%
+  ggplot(aes(x=name, y=sextotal, fill=sex)) +
+  geom_bar(stat="identity", position="fill") +
+  geom_hline(yintercept = .5) +
+  labs(title="Popular Unisex Names", x="", y="Split")
+```
+Show a paired bar chart instead of stacked bar chart
+```{r}
+topnames2 %>%
+  filter(abs(ratio) < .3 & !is.na(ratio)) %>%
+  ggplot(aes(x=name, y=sextotal, fill=sex)) +
+  geom_bar(stat="identity", position="dodge") +
+  labs(title="Popular Unisex Names", x="", y="Count")
+```
+Load `ggthemes` package
+```{r}
+library(ggthemes)
+```
+Change theme of plot
+```{r}
+topnames2 %>%
+  filter(abs(ratio) < .3 & !is.na(ratio)) %>%
+  ggplot(aes(x=name, y=sextotal, fill=sex)) +
+  geom_bar(stat="identity") +
+  labs(title="Popular Unisex Names", x="", y="Count") +
+  theme_minimal() +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank())
+```
+
+```{r}
+initial_props %>%
+  filter(initial=="A") %>%
+  ggplot(aes(y=totalprop, x=year, color=sex)) +
+  geom_line() +
+  theme_fivethirtyeight()
+```
+Add theme after plot and save
+```{r}
+myplot <- initial_props %>%
+  filter(initial=="A") %>%
+  ggplot(aes(y=totalprop, x=year, color=sex)) +
+  geom_line()
+myplot + theme_calc()
+
+ggsave("plot2.pdf", myplot)
+```
+### Plotting with `plotly`
+Load plotly library
+```{r}
+library(plotly)
+```
+Create column with first two letters of each name and subset `A` female names
+```{r}
+babynames <- mutate(babynames, first2=substr(name, 1, 2))
+anames <- babynames %>%
+  filter(initial=="A" & sex=="F") %>%
+  group_by(year, first2) %>%
+  summarize(count=sum(n), totalprop=sum(prop)) %>%
+  ungroup()
+```
+Plot `anames` proportion by year
+```{r}
+p1 <- anames %>%
+  ggplot(aes(y=totalprop, x=year, color=first2)) +
+  geom_line()
+```
+Use wrapper function to be able to get tooltips with `plotly`
+```{r}
+ggplotly(p1)
+```
+Make a plot directly with `plotly`
+```{r}
+plot_ly(anames, x=~year, y=~totalprop, color=~first2, type="scatter", mode="lines")
+```
+Make a plot 3D (poor example due to data, but shows functionality)
+```{r}
+plot_ly(anames, x=~year, y=~first2, z=~totalprop, color=~first2, line=list(width=4)) %>%
+  add_lines() %>%
+  layout(scene=list(xaxis=list(title="Year"),
+                    yaxis=list(title="Starting Letters"),
+                    zaxis=list(title="Proportion")))
+```
