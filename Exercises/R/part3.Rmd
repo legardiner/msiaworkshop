@@ -1,0 +1,38 @@
+---
+title: 'R Exercises Part 3: Reading and Writing Data Files'
+author: "Lauren Gardiner"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The original document for the part 3 of the R exercises can be found (here)[https://nuitrcs.github.io/intro_r_workshop/coreexercises/part3_exercises.html]
+
+# Exercise: Read Data
+
+```{r}
+gapminder <- read.csv("https://goo.gl/dWrc9m")
+str(gapminder)
+```
+```{r, eval=FALSE}
+View(gapminder[gapminder$country=="Belgium",])
+```
+
+# Exercise: Read Tab-delimited
+
+```{r}
+states <- read.csv("https://goo.gl/AwnS4R", sep="\t", col.names = c("state", "lat", "lon"))
+dim(states)
+```
+
+# Exercise: Write a data file
+
+```{r}
+write.csv(states, "states_copy.csv")
+```
