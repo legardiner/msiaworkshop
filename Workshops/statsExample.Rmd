@@ -1,0 +1,195 @@
+---
+title: "Stats Example"
+author: "Lauren Gardiner"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Setup
+
+Get data
+
+```{r}
+data(mtcars)
+head(mtcars)
+```
+
+# Basic Stats
+
+Calculate summary statistics
+
+```{r}
+mean(mtcars$mpg)
+summary(mtcars$mpg)
+```
+
+Create a simple table
+
+```{r}
+table(mtcars$gear)
+```
+
+Create a table with two variables
+
+```{r}
+table(mtcars$gear, mtcars$am)
+```
+Create a table with more than two variables
+```{r}
+ftable(mtcars$gear, mtcars$am, mtcars$cyl)
+```
+
+Create a proportion table
+
+```{r}
+prop.table(table(mtcars$gear))
+```
+
+```{r, eval = FALSE}
+mtcars %>%
+  group_by(gear) %>%
+  summarize(mean(mpg),
+            mean(hp))
+```
+
+# Correlation
+
+Calculate correlation between two variables
+
+```{r}
+cor(mtcars$mpg, mtcars$disp)
+```
+
+Calculate pairwise correlation for an entire dataframe
+
+```{r}
+cor(mtcars)
+```
+
+Calculate covariance
+
+```{r}
+cov(mtcars)
+```
+
+# t-test
+
+Do automatic transmission cars have different mpg than manual transmission cars?
+
+```{r}
+t.test(mtcars$mpg[mtcars$am == 0], mtcars$mpg[mtcars$am == 1])
+```
+
+You can also use a formula format instead of passing two vectors of values
+
+```{r}
+t1 <- t.test(mtcars$mpg ~ mtcars$am)
+names(t1)
+```
+
+You can pull out a specific value from the `t.test`
+
+```{r}
+t1$p.value
+```
+
+# Linear Model
+
+The typical format for a linear model is as follows:
+
+```{r, eval=FALSE}
+lm(y ~ x1 + x2 + x3, data=df)
+```
+
+Here is an example with our `mtcars` data:
+
+```{r}
+r1 <- lm(mpg ~ hp, data = mtcars)
+summary(r1)
+```
+
+Model results and summary have different info
+
+```{r}
+names(r1)
+```
+
+```{r}
+names(summary(r1))
+```
+
+We can plot the model and use `identify` to label specific points (need to use `identify` in console or script instead of markdown)
+
+```{r}
+plot(mtcars$mpg ~ mtcars$hp)
+abline(r1)
+identify(mtcars$hp, mtcars$mpg, labels = rownames(mtcars))
+```
+
+The following command will show you four plots in the console
+
+```{r, eval=FALSE}
+plot(r1)
+```
+
+Create a second linear model
+
+```{r}
+r2 <- lm(mpg ~ hp + I(hp^2) + am + cyl, data=mtcars)
+summary(r2)
+```
+
+`poly` will give you each power up until the one specified, in this case 2. 
+
+```{r}
+r2 <- lm(mpg ~ poly(hp, 2) + am + cyl, data=mtcars)
+summary(r2)
+```
+
+`-1` will remove the intercept. `I(factor(variable)) is used for categorical data
+
+```{r}
+r3 <- lm(mpg ~ -1 + poly(hp, 2) + am + I(factor(cyl)), data=mtcars)
+summary(r3)
+```
+
+`*` allows you to have interaction terms
+
+```{r}
+r4 <- lm(mpg ~ hp*am, data=mtcars)
+summary(r4)
+```
+
+Create a `termplot`
+
+```{r}
+termplot(r2, rug=TRUE)
+```
+
+Predict mpg values
+
+```{r}
+r4 <- lm(mpg ~ -1 + poly(hp, 2) + am + I(factor(cyl)), data=mtcars)
+newvals <- data.frame(hp=seq(50, 250, 10),
+                      am=0,
+                      cyl=4)
+mpg_predict <- predict(r4, newvals)
+mpg_predict
+```
+
+Visualize predicted values
+
+```{r}
+plot(mpg_predict ~ newvals$hp,
+     type="l", lwd=3, col="red",
+     main="am=0; cyl=4") 
+points(mtcars$mpg ~ mtcars$hp)
+```
+
